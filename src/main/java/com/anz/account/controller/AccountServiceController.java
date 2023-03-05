@@ -7,12 +7,10 @@ import com.anz.account.service.AccountService;
 import com.anz.account.service.TransactionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import javax.validation.constraints.Min;
@@ -28,24 +26,24 @@ public class AccountServiceController {
     private final AccountService accountService;
     private final TransactionService transactionService;
 
-    @GetMapping(value = "user/{userId}/accounts")
-    public ResponseEntity<AccountResponse> getAccountsByUserId(
-            @PathVariable @Pattern(regexp = RegexConstants.ALPHA_NUMERIC) final String userId) {
+    @GetMapping(value = "accounts")
+    public ResponseEntity<AccountResponse> getUserAccounts(@RequestHeader final HttpHeaders httpHeaders) {
 
         AccountResponse accountResponse = AccountResponse.builder()
-                .accounts(accountService.viewAccounts(userId)).build();
+                .accounts(accountService.viewAccounts(httpHeaders)).build();
 
         return ResponseEntity.ok(accountResponse);
     }
 
     @GetMapping(value = "account/{accountId}/transactions")
     public ResponseEntity<AccountTransactionResponse> getAccountTransactionsByAccountId(
+            @RequestHeader final HttpHeaders httpHeaders,
             @PathVariable @Valid @Pattern(regexp = RegexConstants.ALPHA_NUMERIC) final String accountId,
             @RequestParam @Min(value = 0, message = "Page no should not be less than zero") final int pageNo,
             @RequestParam @Min(value = 1, message = "Page size should not be less than one") final int pageSize) {
 
         AccountTransactionResponse accountTransactionResponse = AccountTransactionResponse.builder()
-                .accountTransactions(transactionService.viewAccountTransactions(accountId, pageNo, pageSize)).build();
+                .accountTransactions(transactionService.viewAccountTransactions(httpHeaders,accountId, pageNo, pageSize)).build();
 
         return ResponseEntity.ok(accountTransactionResponse);
     }

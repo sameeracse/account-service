@@ -7,5 +7,5 @@ import org.springframework.data.repository.PagingAndSortingRepository;
 
 public interface TransactionRepository extends PagingAndSortingRepository<Transaction,Long> {
 
-    Page<Transaction> findByAccountId(String accountId, Pageable pageable);
+    Page<Transaction> findByAccountIdAndAccountUserId(String userId, String accountId, Pageable pageable);
 }

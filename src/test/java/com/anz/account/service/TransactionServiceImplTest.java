@@ -13,27 +13,37 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.*;
+import org.springframework.http.HttpHeaders;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class TransactionServiceImplTest {
 
+    private static final String AUTH_TOKEN = "authToken";
+    private static final String USER_ID = "userId";
+
     @Mock
     private TransactionRepository transactionRepository;
 
+    @Mock
+    private AuthService authService;
+
     private TransactionServiceImpl transactionService;
 
+    private HttpHeaders httpHeaders;
+
     @BeforeEach
-    public void setUp(){
-        transactionService = new TransactionServiceImpl(transactionRepository, new ModelMapper());
+    public void setUp() {
+        httpHeaders = new HttpHeaders();
+        httpHeaders.put(HttpHeaders.AUTHORIZATION,List.of(AUTH_TOKEN));
+        transactionService = new TransactionServiceImpl(authService, transactionRepository, new ModelMapper());
     }
 
     @Test
@@ -46,10 +56,11 @@ class TransactionServiceImplTest {
         Pageable paging = PageRequest.of(pageNo, pageSize, Sort.by("transactionTime"));
         Page<Transaction> pageResult = new PageImpl<>(List.of(buildTransaction()),paging,10);
 
-        when(transactionRepository.findByAccountId(eq(accountId), any())).thenReturn(pageResult);
-        List<AccountTransaction> accountTransactions= transactionService.viewAccountTransactions(accountId,pageNo,pageSize);
+        when(authService.getUserIdByToken(eq(AUTH_TOKEN))).thenReturn(USER_ID);
+        when(transactionRepository.findByAccountIdAndAccountUserId(eq(USER_ID),eq(accountId), any())).thenReturn(pageResult);
+        List<AccountTransaction> accountTransactions= transactionService.viewAccountTransactions(httpHeaders,accountId,pageNo,pageSize);
 
-        verify(transactionRepository,times(1)).findByAccountId(eq(accountId),eq(paging));
+        verify(transactionRepository,times(1)).findByAccountIdAndAccountUserId(eq(USER_ID),eq(accountId),eq(paging));
         assertEquals(1,accountTransactions.size());
         assertEquals("1",accountTransactions.get(0).getAccountId());
         assertEquals("acctNumber",accountTransactions.get(0).getAccountNumber());
@@ -72,10 +83,11 @@ class TransactionServiceImplTest {
         Pageable paging = PageRequest.of(pageNo, pageSize, Sort.by("transactionTime"));
         Page<Transaction> pageResult = new PageImpl<>(List.of(buildTransaction(),buildTransaction()),paging,10);
 
-        when(transactionRepository.findByAccountId(eq(accountId),any())).thenReturn(pageResult);
-        List<AccountTransaction> accountTransactions= transactionService.viewAccountTransactions(accountId,pageNo,pageSize);
+        when(authService.getUserIdByToken(eq(AUTH_TOKEN))).thenReturn(USER_ID);
+        when(transactionRepository.findByAccountIdAndAccountUserId(eq(USER_ID),eq(accountId),any())).thenReturn(pageResult);
+        List<AccountTransaction> accountTransactions= transactionService.viewAccountTransactions(httpHeaders,accountId,pageNo,pageSize);
 
-        verify(transactionRepository,times(1)).findByAccountId(eq(accountId),eq(paging));
+        verify(transactionRepository,times(1)).findByAccountIdAndAccountUserId(eq(USER_ID),eq(accountId),eq(paging));
         assertEquals(2,accountTransactions.size());
     }
 
@@ -89,10 +101,11 @@ class TransactionServiceImplTest {
         Pageable paging = PageRequest.of(pageNo, pageSize, Sort.by("transactionTime"));
         Page<Transaction> pageResult = new PageImpl<>(List.of(),paging,10);
 
-        when(transactionRepository.findByAccountId(eq(accountId), any())).thenReturn(pageResult);
-        List<AccountTransaction> accountTransactions= transactionService.viewAccountTransactions(accountId,pageNo,pageSize);
+        when(authService.getUserIdByToken(eq(AUTH_TOKEN))).thenReturn(USER_ID);
+        when(transactionRepository.findByAccountIdAndAccountUserId(eq(USER_ID),eq(accountId), any())).thenReturn(pageResult);
+        List<AccountTransaction> accountTransactions= transactionService.viewAccountTransactions(httpHeaders,accountId,pageNo,pageSize);
 
-        verify(transactionRepository,times(1)).findByAccountId(accountId,paging);
+        verify(transactionRepository,times(1)).findByAccountIdAndAccountUserId(USER_ID,accountId,paging);
         assertEquals(0,accountTransactions.size());
     }
 
@@ -101,11 +114,11 @@ class TransactionServiceImplTest {
         int pageSize = 10;
         int pageNo = 1;
 
-        assertThrows(IllegalArgumentException.class, () -> transactionService.viewAccountTransactions(null,pageSize,pageNo));
-        verify(transactionRepository,times(0)).findByAccountId(anyString(),any());
+        assertThrows(IllegalArgumentException.class, () -> transactionService.viewAccountTransactions(httpHeaders,null,pageSize,pageNo));
+        verify(transactionRepository,times(0)).findByAccountIdAndAccountUserId(anyString(),anyString(),any());
 
-        assertThrows(IllegalArgumentException.class, () -> transactionService.viewAccountTransactions("",pageSize,pageNo));
-        verify(transactionRepository,times(0)).findByAccountId(anyString(),any());
+        assertThrows(IllegalArgumentException.class, () -> transactionService.viewAccountTransactions(httpHeaders,"",pageSize,pageNo));
+        verify(transactionRepository,times(0)).findByAccountIdAndAccountUserId(anyString(),anyString(),any());
     }
 
     private Transaction buildTransaction() {

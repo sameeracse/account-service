@@ -8,8 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -25,8 +24,13 @@ class AccountServiceApplicationTests {
 	private TestRestTemplate testRestTemplate;
 
 	@Test
-	void testGetAccountsByUserId() {
-		ResponseEntity<AccountResponse> accountResponse = testRestTemplate.getForEntity(BASE_URL + port + "/user/1/accounts", AccountResponse.class);
+	void testGetUserAccounts() {
+
+		HttpHeaders headers = new HttpHeaders();
+		headers.set("Authorization", "1");
+		HttpEntity<String> entity = new HttpEntity<>("body", headers);
+		ResponseEntity<AccountResponse> accountResponse = testRestTemplate.exchange(
+				BASE_URL + port + "/accounts", HttpMethod.GET,entity, AccountResponse.class);
 		assertEquals(HttpStatus.OK, accountResponse.getStatusCode());
 		assertNotNull(accountResponse.getBody());
 		assertNotNull(accountResponse.getBody().getAccounts());
@@ -34,22 +38,31 @@ class AccountServiceApplicationTests {
 	}
 
 	@Test
-	void testGetAccountsByUserIdWhenInvalidUserId() {
-		ResponseEntity<ApiError> apiError = testRestTemplate.getForEntity(BASE_URL + port + "/user/*!/accounts", ApiError.class);
+	void testGetUserAccountsWhenTokenIsNull() {
+		HttpHeaders headers = new HttpHeaders();
+		HttpEntity<String> entity = new HttpEntity<>("body", headers);
+		ResponseEntity<ApiError> apiError = testRestTemplate.exchange(BASE_URL + port + "/accounts", HttpMethod.GET,entity, ApiError.class);
 		assertNotNull(apiError);
-		assertEquals(HttpStatus.BAD_REQUEST,apiError.getStatusCode());
+		assertEquals(HttpStatus.INTERNAL_SERVER_ERROR,apiError.getStatusCode());
 	}
 
 	@Test
 	void testGetAccountTransactionsByAccountId() {
-		ResponseEntity<AccountTransactionResponse> accountTransactionResponse = testRestTemplate.getForEntity(BASE_URL + port + "/account/1/transactions?pageNo=0&pageSize=10", AccountTransactionResponse.class);
+
+		HttpHeaders headers = new HttpHeaders();
+		headers.set("Authorization", "1");
+		HttpEntity<String> entity = new HttpEntity<>("body", headers);
+
+		ResponseEntity<AccountTransactionResponse> accountTransactionResponse = testRestTemplate.exchange(
+				BASE_URL + port + "/account/1/transactions?pageNo=0&pageSize=10",HttpMethod.GET, entity, AccountTransactionResponse.class);
 
 		assertEquals(HttpStatus.OK,accountTransactionResponse.getStatusCode());
 		assertNotNull(accountTransactionResponse.getBody());
 		assertNotNull(accountTransactionResponse.getBody().getAccountTransactions());
 		assertEquals(10,accountTransactionResponse.getBody().getAccountTransactions().size());
 
-		accountTransactionResponse = testRestTemplate.getForEntity(BASE_URL + port + "/account/1/transactions?pageNo=1&pageSize=10", AccountTransactionResponse.class);
+		accountTransactionResponse = testRestTemplate.exchange(
+				BASE_URL + port + "/account/1/transactions?pageNo=1&pageSize=10",HttpMethod.GET, entity, AccountTransactionResponse.class);
 
 		assertEquals(HttpStatus.OK,accountTransactionResponse.getStatusCode());
 		assertNotNull(accountTransactionResponse.getBody());
@@ -59,7 +72,13 @@ class AccountServiceApplicationTests {
 
 	@Test
 	void testGetAccountTransactionsByAccountIdWhenInvalidAccountId() {
-		ResponseEntity<ApiError> apiError = testRestTemplate.getForEntity(BASE_URL + port + "/account/(%/transactions?pageNo=0&pageSize=2", ApiError.class);
+
+		HttpHeaders headers = new HttpHeaders();
+		headers.set("Authorization", "1");
+		HttpEntity<String> entity = new HttpEntity<>("body", headers);
+
+		ResponseEntity<ApiError> apiError = testRestTemplate.exchange(BASE_URL + port + "/account/(%/transactions?pageNo=0&pageSize=2"
+				,HttpMethod.GET, entity,ApiError.class);
 		assertNotNull(apiError);
 		assertEquals(HttpStatus.BAD_REQUEST,apiError.getStatusCode());
 
@@ -67,7 +86,12 @@ class AccountServiceApplicationTests {
 
 	@Test
 	void testGetAccountTransactionsByAccountIdWhenRequestParams() {
-		ResponseEntity<ApiError> apiError = testRestTemplate.getForEntity(BASE_URL + port + "/account/1/transactions?pageNo=-1&pageSize=2", ApiError.class);
+		HttpHeaders headers = new HttpHeaders();
+		headers.set("Authorization", "1");
+		HttpEntity<String> entity = new HttpEntity<>("body", headers);
+
+		ResponseEntity<ApiError> apiError = testRestTemplate.exchange(BASE_URL + port + "/account/1/transactions?pageNo=-1&pageSize=2",
+				HttpMethod.GET, entity,ApiError.class);
 		assertNotNull(apiError);
 		assertEquals(HttpStatus.BAD_REQUEST,apiError.getStatusCode());
 

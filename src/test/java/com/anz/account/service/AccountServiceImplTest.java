@@ -9,6 +9,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.modelmapper.ModelMapper;
+import org.springframework.http.HttpHeaders;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -21,25 +22,32 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class AccountServiceImplTest {
 
+    private static final String AUTH_TOKEN = "authToken";
+    private static final String USER_ID = "userId";
     @Mock
     private AccountRepository accountRepository;
+    @Mock
+    private AuthService authService;
 
     private AccountServiceImpl accountService;
+    private HttpHeaders httpHeaders;
+
 
     @BeforeEach
-    public void setUp(){
-        accountService = new AccountServiceImpl(accountRepository, new ModelMapper());
+    public void setUp() {
+        httpHeaders = new HttpHeaders();
+        httpHeaders.put(HttpHeaders.AUTHORIZATION,List.of(AUTH_TOKEN));
+        accountService = new AccountServiceImpl(authService,accountRepository, new ModelMapper());
     }
 
     @Test
     public void testViewAccounts() {
 
-        String userId = "userId";
+        when(authService.getUserIdByToken(eq(AUTH_TOKEN))).thenReturn(USER_ID);
+        when(accountRepository.findAllByUserId(eq(USER_ID))).thenReturn(List.of(buildAccount()));
+        List<com.anz.account.dto.Account> accounts = accountService.viewAccounts(httpHeaders);
 
-        when(accountRepository.findAllByUserId(eq(userId))).thenReturn(List.of(buildAccount()));
-        List<com.anz.account.dto.Account> accounts = accountService.viewAccounts(userId);
-
-        verify(accountRepository,times(1)).findAllByUserId(userId);
+        verify(accountRepository,times(1)).findAllByUserId(USER_ID);
         assertEquals(1,accounts.size());
         assertEquals("acctName",accounts.get(0).getAccountName());
         assertEquals("acctNumber",accounts.get(0).getAccountNumber());
@@ -52,34 +60,35 @@ class AccountServiceImplTest {
     @Test
     public void testMultipleViewAccounts() {
 
-        String userId = "userId";
+        when(authService.getUserIdByToken(eq(AUTH_TOKEN))).thenReturn(USER_ID);
+        when(accountRepository.findAllByUserId(eq(USER_ID))).thenReturn(List.of(buildAccount(),buildAccount(),buildAccount()));
+        List<com.anz.account.dto.Account> accounts = accountService.viewAccounts(httpHeaders);
 
-        when(accountRepository.findAllByUserId(eq(userId))).thenReturn(List.of(buildAccount(),buildAccount(),buildAccount()));
-        List<com.anz.account.dto.Account> accounts = accountService.viewAccounts(userId);
-
-        verify(accountRepository,times(1)).findAllByUserId(userId);
+        verify(accountRepository,times(1)).findAllByUserId(USER_ID);
         assertEquals(3,accounts.size());
     }
 
     @Test
     public void testEmptyViewAccounts() {
 
-        String userId = "userId";
+        when(authService.getUserIdByToken(eq(AUTH_TOKEN))).thenReturn(USER_ID);
+        when(accountRepository.findAllByUserId(eq(USER_ID))).thenReturn(List.of());
+        List<com.anz.account.dto.Account> accounts = accountService.viewAccounts(httpHeaders);
 
-        when(accountRepository.findAllByUserId(eq(userId))).thenReturn(List.of());
-        List<com.anz.account.dto.Account> accounts = accountService.viewAccounts(userId);
-
-        verify(accountRepository,times(1)).findAllByUserId(userId);
+        verify(accountRepository,times(1)).findAllByUserId(USER_ID);
         assertEquals(0,accounts.size());
     }
 
     @Test
-    public void testViewAccountsWhenUserIdIsNullOrEmpty() {
+    public void testViewAccountsWhenAccessTokenIsNullOrEmpty() {
 
-        assertThrows(IllegalArgumentException.class, () -> accountService.viewAccounts(null));
+        when(authService.getUserIdByToken(eq(AUTH_TOKEN))).thenReturn(null);
+
+        assertThrows(IllegalArgumentException.class, () -> accountService.viewAccounts(httpHeaders));
         verify(accountRepository,times(0)).findAllByUserId(anyString());
 
-        assertThrows(IllegalArgumentException.class, () -> accountService.viewAccounts(""));
+        when(authService.getUserIdByToken(eq(AUTH_TOKEN))).thenReturn("");
+        assertThrows(IllegalArgumentException.class, () -> accountService.viewAccounts(httpHeaders));
         verify(accountRepository,times(0)).findAllByUserId(anyString());
     }
 
