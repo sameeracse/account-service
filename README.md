@@ -37,3 +37,35 @@ Swagger UI - http://localhost:9000/swagger-ui/index.html
 
 Actuator endpoint : http://localhost:9000/actuator/health
 
+## Testing Scripts
+
+Use below curl commands to execute apis
+
+#### getAccounts
+
+```
+curl -X GET \
+  http://localhost:9000/accounts \
+  -H 'authorization: 1' \
+  -H 'cache-control: no-cache' \
+  -H 'content-type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW' \
+  -H 'postman-token: f52b4cd9-1f97-1bfa-adbd-6bb8a2b26077' \
+  -F from=123456 \
+  -F to=abcdefg \
+  -F amount=100
+```
+
+#### getAccountTransactions
+
+```
+curl -X GET \
+  'http://localhost:9000/account/1/transactions?pageNo=0&pageSize=10' \
+  -H 'authorization: 1' \
+  -H 'cache-control: no-cache' \
+  -H 'content-type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW' \
+  -H 'postman-token: bcc617b8-3da8-c302-2e75-109ec2e16bc6' \
+  -F from=123456 \
+  -F to=abcdefg \
+  -F amount=100
+```
+

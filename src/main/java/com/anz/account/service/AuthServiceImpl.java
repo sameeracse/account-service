@@ -14,6 +14,7 @@ public class AuthServiceImpl implements AuthService {
 
         // this service will call to authentication server to get the access token
         // as of now bearer token is return a user id
+        // TODO Required improve this to take user id from a token/or user service
         return token;
     }
 }
